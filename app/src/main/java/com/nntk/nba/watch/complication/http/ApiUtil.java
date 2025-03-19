@@ -5,12 +5,26 @@ import android.content.Context;
 
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
+import com.blankj.utilcode.util.ResourceUtils;
 import com.blankj.utilcode.util.SPStaticUtils;
 import com.blankj.utilcode.util.ThreadUtils;
-import com.nntk.nba.watch.complication.complication.MainComplicationService;
+import com.nntk.nba.watch.complication.R;
+import com.nntk.nba.watch.complication.constant.SettingConst;
+import com.nntk.nba.watch.complication.entity.GameInfo;
+import com.nntk.nba.watch.complication.entity.TeamEntity;
+import com.orhanobut.logger.Logger;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+import java.util.function.Predicate;
 
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -20,41 +34,105 @@ import okhttp3.Response;
 
 public class ApiUtil {
 
+    private static List<TeamEntity> teamEntityListCache = new ArrayList<>();
 
-    public static String getResult(Context context) {
+    private static List<TeamEntity> teamEntityList() {
+
+        if (teamEntityListCache.isEmpty()) {
+            String json = ResourceUtils.readRaw2String(R.raw.logo);
+            JSONArray objects = JSON.parseArray(json);
+            for (int i = 0; i < objects.size(); i++) {
+                teamEntityListCache.add(TeamEntity.builder()
+                        .simpleFrameSize(objects.getJSONObject(i).getInteger("simpleFrameSize"))
+                        .teamName(objects.getJSONObject(i).getString("teamName"))
+                        .teamNameZh(objects.getJSONObject(i).getString("teamNameZh"))
+                        .bgColor(objects.getJSONObject(i).getString("bgColor"))
+                        .scoreBoardColor(objects.getJSONObject(i).getString("scoreBoardColor"))
+                        .build());
+            }
+        }
+        return teamEntityListCache;
+
+    }
+
+    public static void getResult(Context context) {
 
         ThreadUtils.getIoPool().execute(new Runnable() {
             @Override
             public void run() {
+
                 OkHttpClient client = new OkHttpClient();
                 Request request = new Request.Builder()
                         .get()
-                        .url("https://18.163.229.96/quote-stock-b-api/trade-tick?token=72af6ca8d7bc67247762ba69a9ce2900-c-app&query=%7B%20%20%22trace%22%3A%20%22pariatur%22,%20%20%22data%22%3A%20%7B%20%20%20%20%22symbol_list%22%3A%20%5B%20%20%20%20%20%20%7B%20%20%20%20%20%20%20%20%22code%22%3A%20%22857.HK%22%20%20%20%20%20%20%7D,%20%20%20%20%20%20%7B%20%20%20%20%20%20%20%20%22code%22%3A%20%22UNH.US%22%20%20%20%20%20%20%7D%20%20%20%20%5D%20%20%7D%7D")
+                        .url("https://nba.hupu.com/")
                         .build();
                 Call call = client.newCall(request);
-
                 try {
+                    //同步发送请求
                     Response response = call.execute();
-                    System.out.println(response.body().toString());
+                    if (response.isSuccessful()) {
+                        String html = response.body().string();
+
+                        Elements cardTeams = Jsoup.parse(html).select("div.nba-match-container   div.match-card-team");
+                        List<GameInfo> gameInfoList = new ArrayList<>();
+                        for (Element card : cardTeams) {
+                            gameInfoList.add(GameInfo.builder()
+                                    .guestTeam(card.select("span.team-name").get(0).text())
+                                    .homeTeam(card.select("span.team-name").get(1).text())
+                                    .guestRate(card.select("span.team-rate").get(0).text())
+                                    .homeRate(card.select("span.team-rate").get(1).text())
+                                    .build());
+                        }
+                        String loveTeam = SPStaticUtils.getString(SettingConst.LOVE_TEAM);
+                        TeamEntity teamEntity = teamEntityList().stream().filter(new Predicate<TeamEntity>() {
+                            @Override
+                            public boolean test(TeamEntity teamEntity) {
+                                return teamEntity.getTeamName().contains(loveTeam);
+                            }
+                        }).findFirst().get();
 
 
-                } catch (Exception e) {
+                        GameInfo gameInfo = gameInfoList.stream().filter(new Predicate<GameInfo>() {
+                            @Override
+                            public boolean test(GameInfo gameInfo) {
+                                return gameInfo.getGuestTeam().equals(teamEntity.getTeamNameZh()) || gameInfo.getHomeTeam().equals(teamEntity.getTeamNameZh());
+                            }
+                        }).findFirst().orElse(null);
+
+                        if (gameInfo == null) {
+                            Logger.i("今日球队【%s】没有比赛", loveTeam);
+                            return;
+                        }
+
+                        gameInfo.setGuestTeamEntity(teamEntityList().stream().filter(new Predicate<TeamEntity>() {
+                            @Override
+                            public boolean test(TeamEntity teamEntity) {
+                                return teamEntity.getTeamNameZh().equals(gameInfo.getGuestTeam());
+                            }
+                        }).findFirst().get());
+
+                        gameInfo.setHomeTeamEntity(teamEntityList().stream().filter(new Predicate<TeamEntity>() {
+                            @Override
+                            public boolean test(TeamEntity teamEntity) {
+                                return teamEntity.getTeamNameZh().equals(gameInfo.getHomeTeam());
+                            }
+                        }).findFirst().get());
+
+
+                        SPStaticUtils.put(SettingConst.LIVE_GAME_INFO, JSON.toJSONString(gameInfo));
+                        Logger.i("loveTeam:%s", gameInfo);
+
+                    } else {
+                        Logger.w("请求失败非200:%s", response.body());
+                    }
+                } catch (IOException e) {
                     e.printStackTrace();
-                    SPStaticUtils.put("myKey", new Random().nextInt() + "");
-                    ComplicationDataSourceUpdateRequester request2 = ComplicationDataSourceUpdateRequester.create(
-                            context, new ComponentName(
-                                    context, // 上下文，通常是应用的上下文
-                                    MainComplicationService.class // Complication 数据源服务类
-                            )
-                    );
-                    request2.requestUpdateAll();
+                    Logger.w("请求失败", e);
 
                 }
-
             }
         });
 
-        return new Random().doubles().toString();
 
     }
 }

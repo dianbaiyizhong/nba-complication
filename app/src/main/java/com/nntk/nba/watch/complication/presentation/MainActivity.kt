@@ -24,25 +24,37 @@ import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.tooling.preview.devices.WearDevices
+import com.blankj.utilcode.util.SPStaticUtils
 import com.nntk.nba.watch.complication.R
 import com.nntk.nba.watch.complication.Receiver
 import com.nntk.nba.watch.complication.TimerBroadcastHelper
+import com.nntk.nba.watch.complication.TimerBroadcastHelper.ACTION_GAME
+import com.nntk.nba.watch.complication.constant.SettingConst
 import com.nntk.nba.watch.complication.presentation.theme.NbacomplicationTheme
+import com.orhanobut.logger.AndroidLogAdapter
+import com.orhanobut.logger.FormatStrategy
+import com.orhanobut.logger.Logger
+import com.orhanobut.logger.PrettyFormatStrategy
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
 
+        // 设置logger的tag
+        val formatStrategy: FormatStrategy = PrettyFormatStrategy.newBuilder()
+            .tag("nba-complication")
+            .build()
+        Logger.addLogAdapter(AndroidLogAdapter(formatStrategy))
         super.onCreate(savedInstanceState)
 
+        SPStaticUtils.put(SettingConst.LOVE_TEAM, "warriors")
         setTheme(android.R.style.Theme_DeviceDefault)
-
 
         setContent {
             WearApp("Android")
         }
         val intent = Intent(baseContext, Receiver::class.java)
-        intent.setAction("nntk")
+        intent.setAction(ACTION_GAME)
         sendBroadcast(intent)
         TimerBroadcastHelper.setRepeatingAlarm(baseContext)
     }

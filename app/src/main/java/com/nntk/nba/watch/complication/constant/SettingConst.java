@@ -1,0 +1,11 @@
+package com.nntk.nba.watch.complication.constant;
+
+public class SettingConst {
+
+
+    public static final String LOVE_TEAM = "LOVE_TEAM";
+
+    public static final String LIVE_GAME_INFO = "LIVE_GAME_INFO";
+
+
+}
