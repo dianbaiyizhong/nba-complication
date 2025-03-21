@@ -1,9 +1,5 @@
 package com.nntk.nba.watch.complication;
 
-import static com.nntk.nba.watch.complication.TimerBroadcastHelper.ACTION_GAME;
-
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
@@ -12,7 +8,6 @@ import androidx.activity.ComponentActivity;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester;
 import androidx.wear.widget.WearableRecyclerView;
 
 import com.alibaba.fastjson2.JSON;
@@ -22,11 +17,10 @@ import com.blankj.utilcode.util.SPStaticUtils;
 import com.blankj.utilcode.util.ToastUtils;
 import com.nntk.nba.watch.complication.adapter.NbaLogoAdapter;
 import com.nntk.nba.watch.complication.animation.CustomAnimation1;
-import com.nntk.nba.watch.complication.animation.CustomAnimation2;
-import com.nntk.nba.watch.complication.animation.CustomAnimation3;
-import com.nntk.nba.watch.complication.complication.NbaScoreComplicationService;
 import com.nntk.nba.watch.complication.constant.SettingConst;
 import com.nntk.nba.watch.complication.entity.TeamEntity;
+import com.nntk.nba.watch.complication.http.ApiUtil;
+import com.nntk.nba.watch.complication.receiver.PowerConnectionReceiver;
 import com.orhanobut.logger.AndroidLogAdapter;
 import com.orhanobut.logger.FormatStrategy;
 import com.orhanobut.logger.Logger;
@@ -50,7 +44,6 @@ public class MainActivity extends ComponentActivity {
 
         setContentView(R.layout.activity_main);
 
-//        SPStaticUtils.put(SettingConst.LOVE_TEAM, "warriors");
 
         String json = ResourceUtils.readRaw2String(R.raw.logo);
 
@@ -68,6 +61,8 @@ public class MainActivity extends ComponentActivity {
 
         initRecyclerView();
 
+
+        // 注册熄屏和亮屏广播
         IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_ON);
         filter.addAction(Intent.ACTION_SCREEN_OFF);
         PowerConnectionReceiver mReceiver = new PowerConnectionReceiver();
@@ -95,13 +90,11 @@ public class MainActivity extends ComponentActivity {
 
             ToastUtils.showShort("已选择：" + teamEntity.getTeamNameZh());
 
-            ComplicationDataSourceUpdateRequester request = ComplicationDataSourceUpdateRequester.create(
-                    this, new ComponentName(
-                            this, // 上下文，通常是应用的上下文
-                            NbaScoreComplicationService.class // Complication 数据源服务类
-                    )
-            );
-            request.requestUpdateAll();
+            TimerBroadcastHelper.cancelAlarm(this);
+
+
+            ApiUtil.getResult(this);
+            TimerBroadcastHelper.setRepeatingAlarm(this);
         });
 
     }

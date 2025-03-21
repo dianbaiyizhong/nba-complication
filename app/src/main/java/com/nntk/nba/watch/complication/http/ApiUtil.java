@@ -11,6 +11,7 @@ import com.blankj.utilcode.util.ResourceUtils;
 import com.blankj.utilcode.util.SPStaticUtils;
 import com.blankj.utilcode.util.ThreadUtils;
 import com.nntk.nba.watch.complication.R;
+import com.nntk.nba.watch.complication.complication.NbaScoreComplicationService;
 import com.nntk.nba.watch.complication.constant.SettingConst;
 import com.nntk.nba.watch.complication.entity.GameInfo;
 import com.nntk.nba.watch.complication.entity.TeamEntity;
@@ -60,7 +61,7 @@ public class ApiUtil {
         ThreadUtils.getIoPool().execute(new Runnable() {
             @Override
             public void run() {
-
+                // https://nba-prod-us-east-1-mediaops-stats.s3.amazonaws.com/NBA/liveData/scoreboard/todaysScoreboard_00.json
                 OkHttpClient client = new OkHttpClient();
                 Request request = new Request.Builder()
                         .get()
@@ -121,6 +122,16 @@ public class ApiUtil {
 
                         SPStaticUtils.put(SettingConst.LIVE_GAME_INFO, JSON.toJSONString(gameInfo));
                         Logger.i("loveTeam:%s", gameInfo);
+
+
+                        // 通知更新表盘
+                        ComplicationDataSourceUpdateRequester complicationDataSourceUpdateRequester = ComplicationDataSourceUpdateRequester.create(
+                                context, new ComponentName(
+                                        context, // 上下文，通常是应用的上下文
+                                        NbaScoreComplicationService.class // Complication 数据源服务类
+                                )
+                        );
+                        complicationDataSourceUpdateRequester.requestUpdateAll();
 
                     } else {
                         Logger.w("请求失败非200:%s", response.body());
