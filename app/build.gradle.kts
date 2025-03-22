@@ -8,7 +8,14 @@ plugins {
 android {
     namespace = "com.nntk.nba.watch.complication"
     compileSdk = 35
-
+    signingConfigs {
+        create("release") {
+            storeFile = file("../key")
+            storePassword = "nbanba"
+            keyAlias = "nba"
+            keyPassword = "nbanba"
+        }
+    }
     defaultConfig {
         applicationId = "com.nntk.nba.watch.complication"
         minSdk = 34
@@ -25,6 +32,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
