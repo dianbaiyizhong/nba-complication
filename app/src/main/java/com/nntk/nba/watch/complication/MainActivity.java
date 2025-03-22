@@ -42,6 +42,7 @@ public class MainActivity extends ComponentActivity {
         Logger.addLogAdapter(new AndroidLogAdapter(formatStrategy));
         super.onCreate(savedInstanceState);
 
+
         setContentView(R.layout.activity_main);
 
 
@@ -90,11 +91,14 @@ public class MainActivity extends ComponentActivity {
 
             ToastUtils.showShort("已选择：" + teamEntity.getTeamNameZh());
 
-            TimerBroadcastHelper.cancelAlarm(this);
+
+            if (SPStaticUtils.getBoolean(SettingConst.LIVE_ENABLE)) {
+                ApiUtil.getResult(this);
+                TimerBroadcastHelper.cancelAlarm(this);
+                TimerBroadcastHelper.setRepeatingAlarm(this);
+            }
 
 
-            ApiUtil.getResult(this);
-            TimerBroadcastHelper.setRepeatingAlarm(this);
         });
 
     }

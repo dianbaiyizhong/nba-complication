@@ -12,7 +12,9 @@ import androidx.wear.watchface.complications.data.SmallImageType
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
 import com.blankj.utilcode.util.ResourceUtils
+import com.blankj.utilcode.util.SPStaticUtils
 import com.nntk.nba.watch.complication.TimerBroadcastHelper
+import com.nntk.nba.watch.complication.constant.SettingConst
 import com.nntk.nba.watch.complication.entity.GameInfo
 import com.nntk.nba.watch.complication.util.NbaUtils
 import com.orhanobut.logger.Logger
@@ -35,6 +37,7 @@ class NbaScoreComplicationService : SuspendingComplicationDataSourceService() {
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
 
 
+        SPStaticUtils.put(SettingConst.LIVE_ENABLE, true);
         TimerBroadcastHelper.setRepeatingAlarm(baseContext)
         return createComplicationData(
             NbaUtils.getGameInfo()
@@ -48,7 +51,8 @@ class NbaScoreComplicationService : SuspendingComplicationDataSourceService() {
 
 
         val homeIcon = ResourceUtils.getDrawableIdByName("hupu_" + gameInfo.homeTeamEntity.teamName)
-        val guestIcon = ResourceUtils.getDrawableIdByName("hupu_" + gameInfo.guestTeamEntity.teamName)
+        val guestIcon =
+            ResourceUtils.getDrawableIdByName("hupu_" + gameInfo.guestTeamEntity.teamName)
 
 
         return LongTextComplicationData.Builder(

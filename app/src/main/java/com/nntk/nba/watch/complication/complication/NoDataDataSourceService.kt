@@ -20,7 +20,10 @@ import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.NoDataComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceService
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
+import com.blankj.utilcode.util.SPStaticUtils
 import com.nntk.nba.watch.complication.TimerBroadcastHelper
+import com.nntk.nba.watch.complication.constant.SettingConst
+import com.orhanobut.logger.Logger
 
 /**
  * A complication provider that always returns [ComplicationType.NO_DATA].
@@ -30,6 +33,9 @@ class NoDataDataSourceService : ComplicationDataSourceService() {
         request: ComplicationRequest,
         listener: ComplicationRequestListener,
     ) {
+        Logger.i("NoDataDataSourceService onComplicationRequest")
+        SPStaticUtils.put(SettingConst.LIVE_ENABLE, false);
+
         TimerBroadcastHelper.cancelAlarm(baseContext)
         listener.onComplicationData(NoDataComplicationData())
     }
